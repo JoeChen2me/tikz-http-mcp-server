@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   tikz-mcp-server:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: ${CONTAINER_NAME} # 显式指定容器名称
     ports:
       - "${PORT}:3000"
@@ -14,7 +16,7 @@ services:
       - ./fonts:/app/fonts:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python3", "-c", "import requests; requests.post('http://localhost:3000/mcp', json={'method':'tools/list', 'params':{}}, timeout=5)"]
+      test: ["CMD", "python3", "-c", "import requests; requests.post('http://localhost:3000/mcp/', json={'method':'tools/list', 'params':{}}, timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3

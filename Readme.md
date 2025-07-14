@@ -58,7 +58,7 @@ cp .env.example .env
     *   如果 Docker Compose 未安装，将尝试自动安装。
     *   从 `.env` 文件加载环境变量（如果存在）。
     *   **检查容器是否已在运行，如果存在则停止并删除。**
-    *   构建名为 `tikz-mcp-server:latest` 的 Docker 镜像（镜像名称基于 `SERVICE_NAME`）。
+    *   构建名为 `tikz-mcp-server:latest` 的 Docker 镜像（`docker-compose.simple.yml` 已明确指定使用项目根目录下的 `Dockerfile` 进行构建）。镜像名称基于 `SERVICE_NAME`。
     *   启动名为 `tikz-mcp-server-container` 的 Docker 容器（容器名称基于 `CONTAINER_NAME`），并将容器内部的 `3000` 端口映射到外部的 `${PORT}` 端口。
     *   等待服务启动并进行健康检查。
 
@@ -66,7 +66,7 @@ cp .env.example .env
 
 服务成功启动后，您可以通过以下地址访问 MCP 服务器：
 
-*   **MCP 服务端点**: `http://localhost:${PORT}/mcp`
+*   **MCP 服务端点**: `http://localhost:${PORT}/mcp/`
 
 ### MCP 客户端配置
 
@@ -77,7 +77,7 @@ cp .env.example .env
 ```json
 {
   "type": "http",
-  "url": "http://localhost:${PORT}/mcp",
+  "url": "http://localhost:${PORT}/mcp/",
   "transport": "streamable-http"
 }
 ```
