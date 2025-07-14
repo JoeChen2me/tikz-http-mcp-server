@@ -1,0 +1,65 @@
+{
+  "claude_desktop": {
+    "mcpServers": {
+      "tikz-http-local": {
+        "type": "http",
+        "url": "http://localhost:3000/mcp",
+        "transport": "streamable-http"
+      },
+      "tikz-http-production": {
+        "type": "http", 
+        "url": "https://tikz-mcp.yourdomain.com/mcp",
+        "transport": "streamable-http"
+      }
+    }
+  },
+  
+  "vscode": {
+    "mcp": {
+      "servers": {
+        "tikz-local": {
+          "type": "http",
+          "url": "http://localhost:3000/mcp",
+          "transport": "streamable-http"
+        },
+        "tikz-cloud": {
+          "type": "http",
+          "url": "https://tikz-mcp-server-xyz.a.run.app/mcp",
+          "transport": "streamable-http"
+        }
+      }
+    }
+  },
+
+  "windsurf": {
+    "mcpServers": {
+      "tikz-http": {
+        "type": "http",
+        "url": "http://localhost:3000/mcp",
+        "transport": "streamable-http"
+      }
+    }
+  },
+
+  "cline": {
+    "mcpServers": {
+      "tikz-http": {
+        "type": "http",
+        "url": "http://localhost:3000/mcp",
+        "transport": "streamable-http"
+      }
+    }
+  },
+
+  "cursor": {
+    "mcp": {
+      "servers": {
+        "tikz-http": {
+          "type": "http",
+          "url": "http://localhost:3000/mcp",
+          "transport": "streamable-http"
+        }
+      }
+    }
+  }
+}

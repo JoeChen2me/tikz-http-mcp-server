@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  tikz-mcp-server:
+    build: .
+    container_name: ${CONTAINER_NAME} # 显式指定容器名称
+    ports:
+      - "3000:3000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    volumes:
+      # 可选：挂载字体目录（如有自定义字体）
+      - ./fonts:/app/fonts:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import requests; requests.post('http://localhost:3000/mcp', json={'method':'tools/list', 'params':{}}, timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
