@@ -1,7 +1,13 @@
 # TikZ HTTP MCP 服务器
 
-这是一个基于 Model Context Protocol (MCP) 的 HTTP 服务器，专门用于将 TikZ/LaTeX 代码渲染成高质量的 PNG 图像。它提供了一个 `render_tikz` 工具，允许客户端通过 HTTP 请求提交 TikZ 代码并接收渲染后的图像。
-兼容 `cherry studio`
+## 声明  
+项目来自于一个现有的开源项目：[tikz-mcp-server](https://github.com/ChaNg1o1/tikz-mcp-server)  
+- 本项目在其基础上，增加了HTTP-Streamable接口，实现了远程部署。  
+- 增加了一键部署脚本，实现自定义的一键部署。
+
+这是一个基于 Model Context Protocol (MCP) 的 HTTP 服务器，专门用于将 TikZ/LaTeX 代码渲染成高质量的 PNG 图像。它提供了一个 `render_tikz` 工具，允许客户端通过 HTTP 请求提交 TikZ 代码并接收渲染后的图像。  
+
+兼容 `Cherry Studio`客户端
 
 
 ## 功能特性
