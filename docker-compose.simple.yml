@@ -5,7 +5,7 @@ services:
     build: .
     container_name: ${CONTAINER_NAME} # 显式指定容器名称
     ports:
-      - "3000:3000"
+      - "${PORT}:3000"
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO

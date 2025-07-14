@@ -1,6 +1,8 @@
 # TikZ HTTP MCP 服务器
 
 这是一个基于 Model Context Protocol (MCP) 的 HTTP 服务器，专门用于将 TikZ/LaTeX 代码渲染成高质量的 PNG 图像。它提供了一个 `render_tikz` 工具，允许客户端通过 HTTP 请求提交 TikZ 代码并接收渲染后的图像。
+兼容 `cherry studio`
+
 
 ## 功能特性
 
@@ -30,6 +32,7 @@ cp .env.example .env
 
 *   `SERVICE_NAME`: Docker Compose 服务的名称，默认为 `tikz-mcp-server`。
 *   `CONTAINER_NAME`: Docker 容器的显式名称，默认为 `tikz-mcp-server-container`。
+*   `PORT`: 服务监听的外部端口，默认为 `3000`。
 
 ### 部署步骤
 
@@ -38,10 +41,13 @@ cp .env.example .env
     git clone git@github.com:JoeChen2me/tikz-http-mcp-server.git
     cd tikz-http-mcp-server
     ```
-    (请将 `git@github.com:JoeChen2me/tikz-http-mcp-server.git` 替换为实际的项目仓库地址)
 
 2.  **运行部署脚本**:
-    执行 `deploy.sh` 脚本来构建 Docker 镜像并启动服务。
+    首先，确保 `deploy.sh` 脚本具有执行权限：
+    ```bash
+    chmod +x deploy.sh
+    ```
+    然后，执行 `deploy.sh` 脚本来构建 Docker 镜像并启动服务：
 
     ```bash
     ./deploy.sh
@@ -51,15 +57,16 @@ cp .env.example .env
     *   检查 Docker 和 Docker Compose 是否安装。
     *   如果 Docker Compose 未安装，将尝试自动安装。
     *   从 `.env` 文件加载环境变量（如果存在）。
+    *   **检查容器是否已在运行，如果存在则停止并删除。**
     *   构建名为 `tikz-mcp-server:latest` 的 Docker 镜像（镜像名称基于 `SERVICE_NAME`）。
-    *   启动名为 `tikz-mcp-server-container` 的 Docker 容器（容器名称基于 `CONTAINER_NAME`）。
+    *   启动名为 `tikz-mcp-server-container` 的 Docker 容器（容器名称基于 `CONTAINER_NAME`），并将容器内部的 `3000` 端口映射到外部的 `${PORT}` 端口。
     *   等待服务启动并进行健康检查。
 
 ### 服务地址
 
 服务成功启动后，您可以通过以下地址访问 MCP 服务器：
 
-*   **MCP 服务端点**: `http://localhost:3000/mcp`
+*   **MCP 服务端点**: `http://localhost:${PORT}/mcp`
 
 ### MCP 客户端配置
 
@@ -70,27 +77,28 @@ cp .env.example .env
 ```json
 {
   "type": "http",
-  "url": "http://localhost:3000/mcp",
+  "url": "http://localhost:${PORT}/mcp",
   "transport": "streamable-http"
 }
 ```
 
 ### 常用 Docker 命令
 
-在服务部署后，您可以使用以下 Docker 命令来管理容器：
+在服务部署后，您可以使用以下 `docker-compose` 命令来管理服务：
 
 *   **查看日志**:
     ```bash
-    docker logs tikz-mcp-server-container -f
+    docker-compose -f docker-compose.simple.yml logs -f
     ```
 *   **重启服务**:
     ```bash
-    docker restart tikz-mcp-server-container
+    docker-compose -f docker-compose.simple.yml restart
     ```
 *   **停止服务**:
     ```bash
-    docker stop tikz-mcp-server-container
+    docker-compose -f docker-compose.simple.yml stop
     ```
-*   **删除容器**:
+*   **删除服务容器**:
     ```bash
-    docker rm tikz-mcp-server-container
+    docker-compose -f docker-compose.simple.yml down
+    ```

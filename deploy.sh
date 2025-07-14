@@ -27,6 +27,7 @@ fi
 # 设置默认值
 DEFAULT_SERVICE_NAME="tikz-mcp-server"
 DEFAULT_CONTAINER_NAME="tikz-mcp-server-container"
+DEFAULT_SERVICE_PORT="3000" # 新增默认端口
 
 # 尝试从 .env 文件加载变量
 if [ -f .env ]; then
@@ -37,6 +38,7 @@ fi
 # 使用 .env 中的值或默认值
 SERVICE_NAME="${SERVICE_NAME:-${DEFAULT_SERVICE_NAME}}"
 CONTAINER_NAME="${CONTAINER_NAME:-${DEFAULT_CONTAINER_NAME}}"
+PORT="${PORT:-${DEFAULT_SERVICE_PORT}}" # 使用 PORT 变量
 IMAGE_NAME="${SERVICE_NAME}:latest" # 镜像名称基于服务名称
 
 BUILD_FLAG=""
@@ -58,13 +60,20 @@ else
     BUILD_FLAG="--build"
 fi
 
+# 检查容器是否已在运行，如果存在则停止并删除
+if docker ps -a --filter "name=${CONTAINER_NAME}" --format "{{.ID}}" | grep -q .; then
+    echo "⚠️  检测到容器 ${CONTAINER_NAME} 正在运行或已存在，正在停止并删除..."
+    docker-compose -f docker-compose.simple.yml down
+    echo "✅ 容器 ${CONTAINER_NAME} 已停止并删除。"
+fi
+
 echo "🏗️  正在构建和启动容器..."
 docker-compose -f docker-compose.simple.yml up -d ${BUILD_FLAG}
 
 # 等待服务启动
 echo "⏳ 等待服务启动..."
 for i in {1..30}; do
-    if curl -s -X POST http://localhost:3000/mcp \
+    if curl -s -X POST http://localhost:${PORT}/mcp \
       -H "Content-Type: application/json" \
       -d '{"method":"tools/list","params":{}}' > /dev/null 2>&1; then
         echo "✅ 服务启动成功！"
@@ -82,22 +91,22 @@ done
 echo ""
 echo "🎉 部署完成！"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ 服务地址: http://localhost:3000/mcp"
-echo "✅ 健康检查: http://localhost:3000/mcp"
+echo "✅ 服务地址: http://localhost:${PORT}/mcp"
+echo "✅ 健康检查: http://localhost:${PORT}/mcp"
 echo ""
 echo "📋 MCP客户端配置："
 echo "{"
 echo '  "type": "http",'
-echo '  "url": "http://localhost:3000/mcp",'
+echo "  \"url\": \"http://localhost:${PORT}/mcp\","
 echo '  "transport": "streamable-http"'
 echo "}"
 echo ""
-echo "🔧 常用命令："
-echo "  查看日志: docker logs ${CONTAINER_NAME} -f"
-echo "  重启服务: docker restart ${CONTAINER_NAME}"
-echo "  停止服务: docker stop ${CONTAINER_NAME}"
-echo "  删除容器: docker rm ${CONTAINER_NAME}"
+echo "🔧 常用命令 (使用 docker-compose -f docker-compose.simple.yml):"
+echo "  查看日志: docker-compose -f docker-compose.simple.yml logs -f"
+echo "  重启服务: docker-compose -f docker-compose.simple.yml restart"
+echo "  停止服务: docker-compose -f docker-compose.simple.yml stop"
+echo "  删除服务容器: docker-compose -f docker-compose.simple.yml down"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# 显示容器状态
+# 显示容器状态 (使用 docker 命令)
 docker ps -a -f name=${CONTAINER_NAME}
