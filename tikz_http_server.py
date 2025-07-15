@@ -5,16 +5,21 @@ import tempfile
 import base64
 import logging
 import sys
+import os
+import uuid
 from pathlib import Path
 import contextlib
 from collections.abc import AsyncIterator
+from datetime import datetime
 
 import click
 import mcp.types as types
 from mcp.server.lowlevel import Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from starlette.applications import Starlette
-from starlette.routing import Mount
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
+from starlette.responses import FileResponse
 from starlette.types import Receive, Scope, Send
 
 # Configure logging
@@ -26,9 +31,33 @@ class TikZHTTPServer:
         self.server = Server("tikz-renderer-http")
         self.server_name = "tikz-renderer-http"
         self.server_version = "0.1.0"
+        
+        # 获取公网IP地址
+        self.public_ip = os.getenv('PUBLIC_IP', 'localhost')
+        self.public_port = os.getenv('PUBLIC_PORT', '3000')
+        
+        # 确保图片存储目录存在
+        self.images_dir = Path('/app/images')
+        self.images_dir.mkdir(exist_ok=True)
+        
+        # 确保有权限写入
+        try:
+            test_file = self.images_dir / '.test'
+            test_file.touch()
+            test_file.unlink()
+        except PermissionError:
+            logger.error(f"无法写入图片目录: {self.images_dir}")
+            raise
 
-    def compile_tikz_to_image(self, tikz_code: str) -> str:
-        """Compile TikZ code to PNG image and return base64 encoded data."""
+    def compile_tikz_to_image(self, tikz_code: str) -> tuple[str, str]:
+        return self._compile_tikz(tikz_code, return_base64=True)
+
+    def compile_tikz_to_url(self, tikz_code: str) -> str:
+        base64_data, file_url = self._compile_tikz(tikz_code, return_base64=False)
+        return file_url
+
+    def _compile_tikz(self, tikz_code: str, return_base64: bool) -> tuple[str, str]:
+        """Compile TikZ code to PNG image and return (base64_data, file_url)."""
         try:
             subprocess.run(["xelatex", "--version"], check=True, capture_output=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
@@ -124,24 +153,36 @@ class TikZHTTPServer:
             if not pdf_file.exists():
                 raise RuntimeError("PDF file was not generated")
 
-            png_file = Path(temp_dir) / "diagram.png"
+            # 生成唯一的文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_id = str(uuid.uuid4())[:8]
+            filename = f"tikz_{timestamp}_{unique_id}.png"
+            saved_png_path = self.images_dir / filename
+            
             try:
                 subprocess.run([
                     "convert",
                     "-density", "300",
                     "-quality", "90",
                     str(pdf_file),
-                    str(png_file)
+                    str(saved_png_path)
                 ], check=True, capture_output=True)
             except subprocess.CalledProcessError as e:
                 raise RuntimeError(f"Image conversion failed: {e}")
 
-            if not png_file.exists():
+            if not saved_png_path.exists():
                 raise RuntimeError("PNG file was not generated")
 
-            with open(png_file, "rb") as f:
-                image_data = base64.b64encode(f.read()).decode('utf-8')
-                return image_data
+            # 生成文件URL
+            file_url = f"http://{self.public_ip}:{self.public_port}/images/{filename}"
+            
+            # 生成base64数据
+            image_base64 = ""
+            if return_base64:
+                with open(saved_png_path, "rb") as f:
+                    image_base64 = base64.b64encode(f.read()).decode('utf-8')
+                
+            return image_base64, file_url
 
     def setup_handlers(self):
         """Setup MCP tool handlers."""
@@ -169,7 +210,7 @@ class TikZHTTPServer:
         async def handle_call_tool(
             name: str, arguments: dict
         ) -> list[types.ContentBlock]:
-            if name == "render_tikz":
+            if name == "render_tikz_base64":
                 tikz_code = arguments.get("tikz_code")
 
                 if not tikz_code or not isinstance(tikz_code, str):
@@ -181,9 +222,9 @@ class TikZHTTPServer:
                     ]
 
                 try:
-                    logger.info("Starting TikZ compilation...")
-                    image_base64 = self.compile_tikz_to_image(tikz_code)
-                    logger.info("TikZ compilation completed successfully")
+                    logger.info("Starting TikZ compilation for base64...")
+                    image_base64, file_url = self.compile_tikz_to_image(tikz_code)
+                    logger.info("TikZ compilation completed successfully for base64")
 
                     return [
                         types.TextContent(
@@ -199,7 +240,50 @@ class TikZHTTPServer:
 
                 except Exception as e:
                     error_msg = str(e)
-                    logger.exception("TikZ compilation failed")
+                    logger.exception("TikZ compilation failed for base64")
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"Compilation Error: {error_msg}"
+                        )
+                    ]
+
+            elif name == "render_tikz_url":
+                tikz_code = arguments.get("tikz_code")
+
+                if not tikz_code or not isinstance(tikz_code, str):
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text="Error: Valid TikZ code is required"
+                        )
+                    ]
+
+                try:
+                    logger.info("Starting TikZ compilation for URL...")
+                    image_base64, file_url = self.compile_tikz_to_image(tikz_code)
+                    logger.info("TikZ compilation completed successfully for URL")
+
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"TikZ diagram rendered successfully. URL: {file_url}"
+                        ),
+                        types.ImageContent(
+                            type="image",
+                            data=image_base64,
+                            mimeType="image/png"
+                        )
+                    ] if image_base64 else [
+                        types.TextContent(
+                            type="text",
+                            text=f"TikZ diagram rendered successfully. URL: {file_url}"
+                        )
+                    ]
+
+                except Exception as e:
+                    error_msg = str(e)
+                    logger.exception("TikZ compilation failed for URL")
                     return [
                         types.TextContent(
                             type="text",
@@ -211,7 +295,7 @@ class TikZHTTPServer:
                 return [
                     types.TextContent(
                         type="text",
-                        text=f"Unknown tool: {name}. Available tools: render_tikz"
+                        text=f"Unknown tool: {name}. Available tools: render_tikz_base64, render_tikz_url"
                     )
                 ]
 
@@ -274,6 +358,7 @@ def main(
         debug=True,
         routes=[
             Mount("/mcp", app=handle_streamable_http),
+            Mount("/images", app=StaticFiles(directory=tikz_server.images_dir, allow_index=False)),
         ],
         lifespan=lifespan,
     )

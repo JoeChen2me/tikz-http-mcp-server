@@ -12,10 +12,12 @@
 
 ## 功能特性
 
-*   **TikZ 渲染**: 将 TikZ/LaTeX 代码编译为 PNG 图像。
-*   **MCP 兼容**: 作为 MCP 服务器运行，提供 `render_tikz` 工具。
+*   **TikZ 渲染**: 将 TikZ/LaTeX 代码编译为 PNG 图像，并支持直接返回 base64 编码的图像数据或可访问的图片 URL。
+*   **MCP 兼容**: 作为 MCP 服务器运行，提供 `render_tikz_base64` 和 `render_tikz_url` 两种工具。
+*   **图片自动清理**: 生成的图片会定期自动清理，默认为 1 天。
 *   **Docker 部署**: 提供 `deploy.sh` 脚本，简化 Docker 环境下的部署。
 *   **错误处理**: 捕获 LaTeX 编译和图像转换过程中的错误，并提供详细的错误信息。
+
 
 ## 启动方法
 

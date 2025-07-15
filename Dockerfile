@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     git \
+    dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
 # 修复ImageMagick策略以允许PDF转换
@@ -34,6 +35,9 @@ WORKDIR /app
 
 # 复制应用文件
 COPY tikz_http_server.py ./
+COPY clean_images.py ./
+COPY run.sh ./
+RUN chmod +x run.sh
 
 # 安装Python依赖
 RUN pip3 install --no-cache-dir --upgrade pip && \
@@ -52,4 +56,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python3 -c "import requests; requests.post('http://localhost:3000/mcp/', json={'method':'tools/list', 'params':{}})" || exit 1
 
 # 启动命令
-CMD ["python3", "tikz_http_server.py", "--port", "3000", "--log-level", "INFO", "--json-response"]
+CMD ["dumb-init", "./run.sh"]
