@@ -37,7 +37,7 @@ class TikZHTTPServer:
         self.public_port = os.getenv('PUBLIC_PORT', '3000')
         
         # 确保图片存储目录存在
-        self.images_dir = Path('/app/images')
+        self.images_dir = Path('/app/images').expanduser()
         self.images_dir.mkdir(exist_ok=True)
         
         # 确保有权限写入
@@ -189,10 +189,24 @@ class TikZHTTPServer:
 
         @self.server.list_tools()
         async def handle_list_tools() -> list[types.Tool]:
-            return [
+            tools = [
                 types.Tool(
-                    name="render_tikz",
-                    description="Render TikZ code to high-quality PNG image. Supports TikZ diagrams, mathematical plots, flowcharts, and technical illustrations.",
+                    name="render_tikz_base64",
+                    description="Render TikZ code to high-quality PNG image and return as base64. Supports TikZ diagrams, mathematical plots, flowcharts, and technical illustrations.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tikz_code": {
+                                "type": "string",
+                                "description": "TikZ/LaTeX code to render. Can include \\begin{tikzpicture}...\\end{tikzpicture} or full LaTeX document with \\documentclass."
+                            }
+                        },
+                        "required": ["tikz_code"]
+                    }
+                ),
+                types.Tool(
+                    name="render_tikz_url",
+                    description="Render TikZ code to high-quality PNG image and return as a URL. Supports TikZ diagrams, mathematical plots, flowcharts, and technical illustrations.",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -205,11 +219,14 @@ class TikZHTTPServer:
                     }
                 )
             ]
+            logger.info(f"Listing tools: {[tool.name for tool in tools]}")
+            return tools
 
         @self.server.call_tool()
         async def handle_call_tool(
             name: str, arguments: dict
         ) -> list[types.ContentBlock]:
+            logger.info(f"Call tool received: {name}")
             if name == "render_tikz_base64":
                 tikz_code = arguments.get("tikz_code")
 
@@ -358,7 +375,7 @@ def main(
         debug=True,
         routes=[
             Mount("/mcp", app=handle_streamable_http),
-            Mount("/images", app=StaticFiles(directory=tikz_server.images_dir, allow_index=False)),
+            Mount("/images", app=StaticFiles(directory=tikz_server.images_dir)),
         ],
         lifespan=lifespan,
     )
