@@ -10,7 +10,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-IMAGES_DIR = Path("/app/images")
+IMAGES_DIR = Path("./images")
 # 图片保留时间：1天
 RETENTION_DAYS = 1
 

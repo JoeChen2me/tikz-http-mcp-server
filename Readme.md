@@ -81,6 +81,85 @@ cp .env.example .env
 - **完整镜像**: ~2-3GB（包含完整TeX Live）
 - **最小化镜像**: ~500-800MB（仅包含必要包）
 
+## 本地测试运行
+
+### 前提条件
+在本地运行Python脚本需要安装以下依赖：
+
+#### 系统依赖（macOS/Linux）
+```bash
+# macOS
+brew install imagemagick mactex
+
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y texlive-xetex texlive-latex-recommended texlive-pictures imagemagick fonts-noto-cjk
+
+# CentOS/RHEL
+sudo yum install -y texlive-xetex texlive-latex-recommended texlive-pictures ImageMagick fonts-noto-cjk
+```
+
+#### Python依赖
+```bash
+pip install mcp starlette uvicorn click anyio
+```
+
+### 本地启动测试
+
+1. **创建图片目录**
+   ```bash
+   mkdir -p images
+   ```
+
+2. **启动服务器**
+   ```bash
+   python3 tikz_http_server.py --port 3000 --log-level INFO
+   ```
+
+3. **测试工具列表**
+   ```bash
+   curl -X POST http://localhost:3000/mcp \
+     -H "Content-Type: application/json" \
+     -d '{"method":"tools/list","params":{}}'
+   ```
+
+4. **测试TikZ渲染**
+   ```bash
+   curl -X POST http://localhost:3000/mcp \
+     -H "Content-Type: application/json" \
+     -d '{
+       "method":"tools/call",
+       "params":{
+         "name":"render_tikz_base64",
+         "arguments":{"tikz_code":"\\begin{tikzpicture}\\draw (0,0) circle (1cm);\\end{tikzpicture}"}
+       }
+     }'
+   ```
+
+5. **测试安装TeX包**（仅当需要时）
+   ```bash
+   curl -X POST http://localhost:3000/mcp \
+     -H "Content-Type: application/json" \
+     -d '{
+       "method":"tools/call",
+       "params":{
+         "name":"install_tex_package",
+         "arguments":{"package_name":"pgfplots"}
+       }
+     }'
+   ```
+
+### 环境变量
+本地运行时可以使用以下环境变量：
+- `PUBLIC_IP`: 公网IP地址（默认：localhost）
+- `PUBLIC_PORT`: 公网端口（默认：3000）
+- `LOG_LEVEL`: 日志级别（默认：INFO）
+
+示例：
+```bash
+PUBLIC_IP=localhost PUBLIC_PORT=3000 python3 tikz_http_server.py
+```
+
     脚本将执行以下操作：
     *   检查 Docker 和 Docker Compose 是否安装。
     *   如果 Docker Compose 未安装，将尝试自动安装。

@@ -37,7 +37,7 @@ class TikZHTTPServer:
         self.public_port = os.getenv('PUBLIC_PORT', '3000')
         
         # 确保图片存储目录存在
-        self.images_dir = Path('/app/images').expanduser()
+        self.images_dir = Path('./images').expanduser()
         self.images_dir.mkdir(exist_ok=True)
         
         # 确保有权限写入
