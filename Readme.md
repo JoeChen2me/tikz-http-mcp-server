@@ -13,8 +13,9 @@
 ## 功能特性
 
 *   **TikZ 渲染**: 将 TikZ/LaTeX 代码编译为 PNG 图像，并支持直接返回 base64 编码的图像数据或可访问的图片 URL。
-*   **MCP 兼容**: 作为 MCP 服务器运行，提供 `render_tikz_base64` 和 `render_tikz_url` 两种工具。
+*   **MCP 兼容**: 作为 MCP 服务器运行，提供 `render_tikz_base64`、`render_tikz_url` 和 `install_tex_package` 三种工具。
 *   **图片自动清理**: 生成的图片会定期自动清理，默认为 1 天。
+*   **最小化镜像**: 提供最小化的 Docker 镜像，仅包含必要的 TeX 包，大幅减少镜像大小。
 *   **Docker 部署**: 提供 `deploy.sh` 脚本，简化 Docker 环境下的部署。
 *   **错误处理**: 捕获 LaTeX 编译和图像转换过程中的错误，并提供详细的错误信息。
 
@@ -44,6 +45,8 @@ cp .env.example .env
 
 ### 部署步骤
 
+#### 完整镜像部署（包含所有TeX包，体积较大）
+
 1.  **克隆仓库** (如果尚未克隆):
     ```bash
     git clone git@github.com:JoeChen2me/tikz-http-mcp-server.git
@@ -61,6 +64,23 @@ cp .env.example .env
     ./deploy.sh
     ```
 
+#### 最小化镜像部署（仅包含必要TeX包，体积较小）
+
+1.  **运行最小化部署脚本**:
+    首先，确保 `deploy-minimal.sh` 脚本具有执行权限：
+    ```bash
+    chmod +x deploy-minimal.sh
+    ```
+    然后，执行脚本来构建最小化 Docker 镜像：
+
+    ```bash
+    ./deploy-minimal.sh
+    ```
+
+### 镜像大小对比
+- **完整镜像**: ~2-3GB（包含完整TeX Live）
+- **最小化镜像**: ~500-800MB（仅包含必要包）
+
     脚本将执行以下操作：
     *   检查 Docker 和 Docker Compose 是否安装。
     *   如果 Docker Compose 未安装，将尝试自动安装。
@@ -75,6 +95,29 @@ cp .env.example .env
 服务成功启动后，您可以通过以下地址访问 MCP 服务器：
 
 *   **MCP 服务端点**: `http://localhost:${PORT}/mcp/`
+
+### MCP 工具使用说明
+
+服务器提供了以下三个工具：
+
+1. **render_tikz_base64**: 将TikZ代码渲染为PNG并返回base64编码
+2. **render_tikz_url**: 将TikZ代码渲染为PNG并返回可访问的URL
+3. **install_tex_package**: 安装额外的TeX包（最小化镜像特别有用）
+
+#### 安装TeX包示例
+当使用最小化镜像时，如果缺少特定TeX包，可以使用`install_tex_package`工具：
+
+```json
+{
+  "package_name": "pgfplots"
+}
+```
+
+支持的包名示例：
+- `pgfplots` - 用于绘制函数图表
+- `tikz-cd` - 用于交换图
+- `tkz-euclide` - 用于欧式几何
+- `circuitikz` - 用于电路图
 
 ### MCP 客户端配置
 
@@ -92,6 +135,7 @@ cp .env.example .env
 
 ### 常用 Docker 命令
 
+#### 完整镜像命令
 在服务部署后，您可以使用以下 `docker-compose` 命令来管理服务：
 
 *   **查看日志**:
@@ -109,4 +153,22 @@ cp .env.example .env
 *   **删除服务容器**:
     ```bash
     docker-compose -f docker-compose.simple.yml down
+    ```
+
+#### 最小化镜像命令
+*   **查看日志**:
+    ```bash
+    docker-compose -f docker-compose.minimal.yml logs -f
+    ```
+*   **重启服务**:
+    ```bash
+    docker-compose -f docker-compose.minimal.yml restart
+    ```
+*   **停止服务**:
+    ```bash
+    docker-compose -f docker-compose.minimal.yml stop
+    ```
+*   **删除服务容器**:
+    ```bash
+    docker-compose -f docker-compose.minimal.yml down
     ```

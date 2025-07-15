@@ -56,6 +56,39 @@ class TikZHTTPServer:
         base64_data, file_url = self._compile_tikz(tikz_code, return_base64=False)
         return file_url
 
+    def install_tex_package(self, package_name: str) -> str:
+        """Install a TeX package using tlmgr or apt-get."""
+        try:
+            # 首先尝试使用 tlmgr
+            result = subprocess.run([
+                "tlmgr", "install", package_name
+            ], capture_output=True, text=True, timeout=300)
+            
+            if result.returncode == 0:
+                return f"Successfully installed TeX package: {package_name}"
+            else:
+                # 如果tlmgr不可用，尝试使用apt-get
+                result = subprocess.run([
+                    "apt-get", "update"
+                ], capture_output=True, text=True, timeout=60)
+                
+                if result.returncode == 0:
+                    result = subprocess.run([
+                        "apt-get", "install", "-y", f"texlive-{package_name}"
+                    ], capture_output=True, text=True, timeout=300)
+                    
+                    if result.returncode == 0:
+                        return f"Successfully installed TeX package: texlive-{package_name}"
+                    else:
+                        return f"Failed to install package {package_name} via apt-get: {result.stderr}"
+                else:
+                    return f"Failed to install package {package_name}: {result.stderr}"
+                    
+        except subprocess.TimeoutExpired:
+            return f"Installation timeout for package: {package_name}"
+        except Exception as e:
+            return f"Error installing package {package_name}: {str(e)}"
+
     def _compile_tikz(self, tikz_code: str, return_base64: bool) -> tuple[str, str]:
         """Compile TikZ code to PNG image and return (base64_data, file_url)."""
         try:
@@ -217,6 +250,20 @@ class TikZHTTPServer:
                         },
                         "required": ["tikz_code"]
                     }
+                ),
+                types.Tool(
+                    name="install_tex_package",
+                    description="Install additional TeX packages using tlmgr or apt-get. Useful for adding missing packages needed for TikZ rendering.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "package_name": {
+                                "type": "string",
+                                "description": "Name of the TeX package to install (e.g., 'pgfplots', 'tikz-cd', 'tkz-euclide')."
+                            }
+                        },
+                        "required": ["package_name"]
+                    }
                 )
             ]
             logger.info(f"Listing tools: {[tool.name for tool in tools]}")
@@ -308,11 +355,44 @@ class TikZHTTPServer:
                         )
                     ]
 
+            elif name == "install_tex_package":
+                package_name = arguments.get("package_name")
+
+                if not package_name or not isinstance(package_name, str):
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text="Error: Valid package name is required"
+                        )
+                    ]
+
+                try:
+                    logger.info(f"Starting installation of TeX package: {package_name}")
+                    result = self.install_tex_package(package_name)
+                    logger.info(f"TeX package installation completed: {package_name}")
+
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=result
+                        )
+                    ]
+
+                except Exception as e:
+                    error_msg = str(e)
+                    logger.exception("TeX package installation failed")
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"Installation Error: {error_msg}"
+                        )
+                    ]
+
             else:
                 return [
                     types.TextContent(
                         type="text",
-                        text=f"Unknown tool: {name}. Available tools: render_tikz_base64, render_tikz_url"
+                        text=f"Unknown tool: {name}. Available tools: render_tikz_base64, render_tikz_url, install_tex_package"
                     )
                 ]
 
