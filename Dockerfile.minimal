@@ -13,12 +13,6 @@ RUN apk add --no-cache \
     py3-pip \
     # 最小化LaTeX环境
     texlive-full \
-    texlive-xetex \
-    texlive-latex \
-    texlive-pictures \
-    texlive-science \
-    texlive-fonts \
-    texlive-langcjk \
     # ImageMagick用于图像转换
     imagemagick \
     imagemagick-pdf \
@@ -26,6 +20,7 @@ RUN apk add --no-cache \
     font-noto-cjk \
     font-liberation \
     font-dejavu \
+    font-noto \
     # 其他工具
     curl \
     wget \
@@ -46,8 +41,13 @@ COPY run.sh ./
 RUN chmod +x run.sh
 
 # 安装Python依赖
-RUN pip3 install --no-cache-dir --upgrade pip && \
-    pip3 install --no-cache-dir mcp starlette uvicorn click anyio
+RUN python3 -m venv /opt/venv && \
+    . /opt/venv/bin/activate && \
+    pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir mcp starlette uvicorn click anyio
+
+# 设置虚拟环境路径
+ENV PATH="/opt/venv/bin:$PATH"
 
 # 创建非root用户以提升安全性
 RUN addgroup -g 1000 tikz && \

@@ -11,7 +11,14 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO
+      - PUBLIC_IP=${PUBLIC_IP:-localhost}
+      - PUBLIC_PORT=${PUBLIC_PORT:-3000}
+      - DOMAIN=${DOMAIN:-}
     volumes:
+      # 映射脚本文件，便于热更新
+      - ./tikz_http_server.py:/app/tikz_http_server.py:ro
+      - ./clean_images.py:/app/clean_images.py:ro
+      - ./run.sh:/app/run.sh:ro
       # 可选：挂载字体目录（如有自定义字体）
       - ./fonts:/app/fonts:ro
     restart: unless-stopped

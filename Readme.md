@@ -42,6 +42,9 @@ cp .env.example .env
 *   `SERVICE_NAME`: Docker Compose 服务的名称，默认为 `tikz-mcp-server`。
 *   `CONTAINER_NAME`: Docker 容器的显式名称，默认为 `tikz-mcp-server-container`。
 *   `PORT`: 服务监听的外部端口，默认为 `3000`。
+*   `PUBLIC_IP`: 公网IP地址，用于生成图片URL，默认为 `localhost`。
+*   `PUBLIC_PORT`: 公网端口，用于生成图片URL，默认为 `3000`。
+*   `DOMAIN`: （可选）域名，如果设置将优先使用HTTPS域名生成图片URL，例如 `https://tikz.yourdomain.com`
 
 ### 部署步骤
 
@@ -251,3 +254,34 @@ PUBLIC_IP=localhost PUBLIC_PORT=3000 python3 tikz_http_server.py
     ```bash
     docker-compose -f docker-compose.minimal.yml down
     ```
+
+### 域名配置与开发说明
+
+#### 域名配置
+当使用反向代理（如nginx）时，可以通过设置域名来生成HTTPS格式的图片URL：
+
+1. **配置域名**：在`.env`文件中设置域名
+   ```bash
+   DOMAIN=https://tikz.yourdomain.com
+   ```
+
+2. **重启服务**：
+   ```bash
+   docker-compose -f docker-compose.minimal.yml restart
+   ```
+
+#### 开发热更新
+为了便于开发，所有脚本文件已通过volume映射到容器内：
+
+- **映射文件**：
+  - `tikz_http_server.py` → `/app/tikz_http_server.py`
+  - `clean_images.py` → `/app/clean_images.py`
+  - `run.sh` → `/app/run.sh`
+
+- **热更新流程**：
+  1. 直接修改本地文件
+  2. 运行 `docker-compose -f docker-compose.minimal.yml restart`
+  3. 无需重新构建镜像即可生效
+
+#### CORS支持
+已添加全面的CORS头支持，允许所有来源访问图片资源，解决了跨域加载问题。
